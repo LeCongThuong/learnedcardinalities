@@ -6,7 +6,7 @@ import torch.nn.functional as F
 # Define model architecture
 
 class SetConv(nn.Module):
-    def __init__(self, sample_feats, predicate_feats, join_feats, hid_units):
+    def __init__(self, sample_feats, predicate_feats, join_feats, hid_units, drop_prob=0.3):
         super(SetConv, self).__init__()
         self.sample_mlp1 = nn.Linear(sample_feats, hid_units)
         self.sample_mlp2 = nn.Linear(hid_units, hid_units)
@@ -16,6 +16,10 @@ class SetConv(nn.Module):
         self.join_mlp2 = nn.Linear(hid_units, hid_units)
         self.out_mlp1 = nn.Linear(hid_units * 3, hid_units)
         self.out_mlp2 = nn.Linear(hid_units, 1)
+        self.sample_dropout = nn.Dropout(drop_prob)
+        self.predicate_dropout = nn.Dropout(drop_prob)
+        self.join_dropout = nn.Dropout(drop_prob)
+        self.final_dropout = nn.Dropout(drop_prob)
 
     def forward(self, samples, predicates, joins, sample_mask, predicate_mask, join_mask):
         # samples has shape [batch_size x num_joins+1 x sample_feats]
@@ -23,6 +27,7 @@ class SetConv(nn.Module):
         # joins has shape [batch_size x num_joins x join_feats]
 
         hid_sample = F.relu(self.sample_mlp1(samples))
+        hid_sample = self.sample_dropout(hid_sample)
         hid_sample = F.relu(self.sample_mlp2(hid_sample))
         hid_sample = hid_sample * sample_mask  # Mask
         hid_sample = torch.sum(hid_sample, dim=1, keepdim=False)
@@ -30,6 +35,7 @@ class SetConv(nn.Module):
         hid_sample = hid_sample / sample_norm  # Calculate average only over non-masked parts
 
         hid_predicate = F.relu(self.predicate_mlp1(predicates))
+        hid_predicate = self.predicate_dropout(hid_predicate)
         hid_predicate = F.relu(self.predicate_mlp2(hid_predicate))
         hid_predicate = hid_predicate * predicate_mask
         hid_predicate = torch.sum(hid_predicate, dim=1, keepdim=False)
@@ -37,6 +43,7 @@ class SetConv(nn.Module):
         hid_predicate = hid_predicate / predicate_norm
 
         hid_join = F.relu(self.join_mlp1(joins))
+        hid_join = self.join_dropout(hid_join)
         hid_join = F.relu(self.join_mlp2(hid_join))
         hid_join = hid_join * join_mask
         hid_join = torch.sum(hid_join, dim=1, keepdim=False)
@@ -45,5 +52,6 @@ class SetConv(nn.Module):
 
         hid = torch.cat((hid_sample, hid_predicate, hid_join), 1)
         hid = F.relu(self.out_mlp1(hid))
+        hid = self.final_dropout(hid)
         out = torch.sigmoid(self.out_mlp2(hid))
         return out

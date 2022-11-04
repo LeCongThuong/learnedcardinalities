@@ -9,8 +9,10 @@ from torch.utils.data import DataLoader
 from mscn.util import *
 from mscn.data import get_train_datasets, load_data, make_dataset
 from mscn.model import SetConv
+from torch.utils.tensorboard import SummaryWriter
 
 
+writer = SummaryWriter('./logs')
 def unnormalize_torch(vals, min_val, max_val):
     vals = (vals * (max_val - min_val)) + min_val
     return torch.exp(vals)
@@ -117,6 +119,7 @@ def train_and_predict(workload_name, num_queries, num_epochs, batch_size, hid_un
             loss.backward()
             optimizer.step()
 
+        writer.add_scalar('loss/train', loss_total / len(train_data_loader), epoch)
         print("Epoch {}, loss: {}".format(epoch, loss_total / len(train_data_loader)))
 
     # Get final training and validation set predictions

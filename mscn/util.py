@@ -106,7 +106,11 @@ def normalize_labels(labels, min_val=None, max_val=None):
 
 
 def unnormalize_labels(labels_norm, min_val, max_val):
-    labels_norm = np.array(labels_norm, dtype=np.float32)
+    if not isinstance(labels_norm[0], (np.ndarray, np.generic)):
+      labels_norm = np.array([label_norm.cpu().data.numpy()[0] for label_norm in labels_norm], dtype=np.float32)
+    else:
+      labels_norm = np.array(labels_norm, dtype=np.float32)
+    # labels_norm = np.array(labels_norm, dtype=np.float32)
     labels = (labels_norm * (max_val - min_val)) + min_val
     return np.array(np.round(np.exp(labels)), dtype=np.int64)
 

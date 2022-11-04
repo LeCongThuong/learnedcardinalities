@@ -6,7 +6,7 @@ import torch.nn.functional as F
 # Define model architecture
 
 class SetConv(nn.Module):
-    def __init__(self, sample_feats, predicate_feats, join_feats, hid_units, drop_prob=0.3):
+    def __init__(self, sample_feats, predicate_feats, join_feats, hid_units, drop_prob=0.1):
         super(SetConv, self).__init__()
         self.sample_mlp1 = nn.Linear(sample_feats, hid_units)
         self.sample_mlp2 = nn.Linear(hid_units, hid_units)
